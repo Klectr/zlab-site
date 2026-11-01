@@ -6,7 +6,7 @@ Served at [zlab.klectr.dev](https://zlab.klectr.dev) from the Klectr VPS (`/var/
 
 ## Editing
 
-Static files, no build step: `index.html` and `fonts/`. Edit, commit, and copy to the VPS:
+Static files, no build step: `index.html`, `fonts/`, and `og-image.png` (1200×630 share card, composed as SVG and rendered with resvg — script kept outside the repo). Edit, commit, and copy to the VPS:
 
 ```
 scp -r index.html fonts root@<vps>:/var/www/zlab/
