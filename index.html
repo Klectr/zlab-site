@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zlab — think on an infinite canvas</title>
+<meta name="description" content="Zlab is a free, open-source infinite canvas for sticky notes, text, and images. No account, no server — your boards live in your browser and work offline.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a1f42'/%3E%3Ctext x='50' y='70' font-size='58' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3Ez%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fragment+Mono&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  @font-face{
+    font-family:"Virgil";
+    src:url("fonts/Virgil.woff2") format("woff2");
+    font-weight:400;
+  }
+  :root{
+    --ink:#1e232c;
+    --muted:#8691a1;
+    --faint:#adb2b8;
+    --surface:#f3f4f6;
+    --line:rgba(0,0,0,.10);
+    --accent:#4176e6;
+    --accent-deep:#3157b8;
+    --navy-0:#060f22;
+    --navy-1:#0a1f42;
+    --navy-2:#123a75;
+    --hero-sub:#a9bedd;
+    --radius:9px;
+    --shadow-raised:0 1px 3px rgba(0,0,0,.08);
+    --shadow-overlay:0 0 1px 0 rgba(0,0,0,.2),0 0 4px 0 rgba(0,0,0,.02),0 24px 72px rgba(0,0,0,.35);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif;
+    color:var(--ink);
+    background:#ffffff;
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:"Montserrat",sans-serif;line-height:1.2}
+  code,pre,.mono{font-family:"Fragment Mono",monospace}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:
+      radial-gradient(760px 480px at 50% -60px, rgba(65,118,230,.32), rgba(65,118,230,0) 65%),
+      radial-gradient(620px 460px at 88% 30%, rgba(65,118,230,.16), rgba(65,118,230,0) 65%),
+      #07080a;
+    color:#fff;
+    overflow:hidden;
+  }
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding-top:24px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;color:#fff}
+  .brand .mark{
+    width:32px;height:32px;border-radius:8px;background:#fff;color:var(--navy-1);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Montserrat",sans-serif;font-weight:800;font-size:18px;
+  }
+  .brand .name{font-family:"Montserrat",sans-serif;font-weight:700;font-size:22px;letter-spacing:.2px}
+  .brand .badge{
+    font-family:"Fragment Mono",monospace;font-size:11px;letter-spacing:1px;
+    border:1px solid rgba(255,255,255,.5);border-radius:4px;padding:2px 6px;color:#fff;
+  }
+  .nav-links{display:flex;gap:12px;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:"DM Sans",sans-serif;font-weight:500;font-size:15px;
+    padding:8px 16px;border-radius:var(--radius);border:1px solid transparent;
+    transition:opacity .2s ease, background .2s ease, transform .2s ease;
+    cursor:pointer;
+  }
+  .btn:hover{opacity:.92}
+  .btn-white{background:#fff;color:var(--navy-1)}
+  .btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+  .btn-ghost:hover{background:rgba(255,255,255,.08)}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-accent:hover{background:var(--accent-deep)}
+  .btn-pill{border-radius:100px;padding:14px 32px;font-size:16px}
+  .btn-ghost-dark{background:transparent;color:var(--ink);border-color:var(--ink)}
+  .btn-ghost-dark:hover{background:rgba(0,0,0,.04)}
+
+  .hero-inner{
+    text-align:center;padding:76px 0 0;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .eyebrow{
+    font-family:"Fragment Mono",monospace;font-size:13px;letter-spacing:4px;
+    color:var(--hero-sub);text-transform:uppercase;
+  }
+  .hero h1{
+    font-size:56px;font-weight:700;letter-spacing:-.5px;
+    margin:24px 0 8px;max-width:820px;
+  }
+  .hero h1 .line2{display:block;margin-top:6px}
+  .hero .sub{
+    color:var(--hero-sub);font-size:17px;line-height:1.6;
+    max-width:600px;margin:24px auto 0;
+  }
+  .hero-ctas{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+  .hero-note{margin-top:16px;color:var(--hero-sub);font-size:13px}
+  .hero-note .mono{color:#dbe6fa}
+
+  /* ---------- app window mock ---------- */
+  .mock{
+    max-width:920px;margin:56px auto -120px;text-align:left;position:relative;z-index:2;
+    background:#101319;border:1px solid rgba(255,255,255,.14);
+    border-radius:16px;box-shadow:var(--shadow-overlay);
+  }
+  .mock-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .dot{width:12px;height:12px;border-radius:50%}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .mock-title{margin-left:10px;color:#8b93a3;font-size:13px;font-family:"Fragment Mono",monospace}
+  .mock-title b{color:#dbe6fa;font-weight:400}
+  .canvas{
+    position:relative;height:430px;border-radius:0 0 16px 16px;overflow:hidden;
+    background:
+      radial-gradient(rgba(255,255,255,.13) 1px, transparent 1.2px),
+      #151a21;
+    background-size:24px 24px, 100% 100%;
+  }
+  .toolbar{
+    position:absolute;left:14px;top:14px;z-index:5;
+    display:flex;flex-direction:column;gap:4px;padding:6px;
+    background:rgba(21,26,33,.92);border:1px solid #353638;border-radius:12px;
+  }
+  .toolbar span{
+    width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:#cfd3d6;font-size:17px;font-family:"Virgil",cursive;
+  }
+  .toolbar span.on{background:var(--accent);color:#fff}
+  .note{
+    position:absolute;padding:12px 14px;border-radius:4px 14px 4px 14px;
+    font-family:"Virgil",cursive;color:#23272e;line-height:1.45;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
+  }
+  .note h4{font-family:"Virgil",cursive;font-size:17px;margin-bottom:4px}
+  .note p,.note li{font-size:14.5px}
+  .note ul{list-style:none}
+  .note .box{color:#4176e6}
+  .note .save{
+    position:absolute;top:10px;right:12px;width:8px;height:8px;border-radius:50%;background:#267d46;
+  }
+  .note-a{left:64px;top:36px;width:248px;background:#fdf3b8;transform:rotate(-1.6deg)}
+  .note-b{right:56px;top:118px;width:228px;background:#ffd9d2;transform:rotate(1.8deg)}
+  .note-c{left:120px;bottom:34px;width:216px;background:#d7f0dc;transform:rotate(.8deg)}
+  .bigtext{
+    position:absolute;left:330px;top:52px;z-index:3;
+    font-family:"Virgil",cursive;font-size:44px;color:#f2f4f7;transform:rotate(-1deg);
+    text-shadow:0 4px 18px rgba(0,0,0,.4);white-space:nowrap;
+  }
+  .imgcard{
+    position:absolute;right:96px;bottom:40px;width:172px;height:118px;border-radius:10px;
+    transform:rotate(2.4deg);overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.35);
+    background:linear-gradient(180deg,#8fb4ff 0%,#4176e6 55%,#123a75 100%);
+    border:1px solid rgba(255,255,255,.35);
+  }
+  .imgcard svg{position:absolute;bottom:0;left:0;width:100%}
+  .imgcard .cap{
+    position:absolute;top:8px;left:10px;font-family:"Virgil",cursive;font-size:13px;color:#fff;
+    text-shadow:0 1px 6px rgba(0,0,0,.45);
+  }
+  .minimap{
+    position:absolute;right:14px;bottom:14px;width:118px;height:84px;z-index:5;
+    background:rgba(21,26,33,.92);border:1px solid #353638;border-radius:8px;
+  }
+  .minimap i{position:absolute;background:#5b6470;border-radius:2px}
+  .minimap .view{
+    position:absolute;left:16px;top:12px;width:56px;height:40px;
+    border:1.5px solid var(--accent);border-radius:3px;background:rgba(65,118,230,.13);
+  }
+  .mock-hint{
+    position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+    font-family:"Fragment Mono",monospace;font-size:11px;letter-spacing:1.5px;color:#69758c;
+    text-transform:uppercase;white-space:nowrap;
+  }
+
+  /* ---------- light sections ---------- */
+  section{padding:88px 0}
+  .first-light{padding-top:196px}
+  .kicker{
+    font-family:"Fragment Mono",monospace;font-size:12px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--accent);margin-bottom:14px;
+  }
+  .sec-title{font-size:38px;font-weight:700;letter-spacing:-.3px;max-width:640px}
+  .sec-sub{color:var(--muted);font-size:16px;margin-top:14px;max-width:620px;line-height:1.6}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:8px}
+  .stat{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-raised)}
+  .stat .label{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+  .stat .value{font-family:"Montserrat",sans-serif;font-size:30px;font-weight:700;margin-top:8px}
+  .stat .hint{color:var(--muted);margin-top:4px}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;box-shadow:var(--shadow-raised);
+  }
+  .step .num{
+    font-family:"Fragment Mono",monospace;color:var(--accent);font-size:13px;letter-spacing:2px;
+  }
+  .step h3{font-size:18px;margin:10px 0 8px}
+  .step p{color:var(--muted);line-height:1.6}
+  .step .mono{color:var(--ink);font-size:13px}
+
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+  .feature h3{font-size:17px;margin-bottom:8px}
+  .feature p{color:var(--muted);line-height:1.6}
+  .feature .tag{
+    display:inline-block;font-family:"Fragment Mono",monospace;font-size:11px;letter-spacing:1px;
+    color:var(--accent-deep);background:rgba(65,118,230,.10);
+    border-radius:100px;padding:3px 10px;margin-bottom:12px;text-transform:uppercase;
+  }
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;margin-top:40px}
+  .codecard{
+    background:#0b0e14;border-radius:12px;padding:20px 24px;color:#c9d4e8;
+    font-family:"Fragment Mono",monospace;font-size:13.5px;line-height:1.9;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow-raised);
+  }
+  .codecard .dim{color:#69758c}
+  .codecard .hl{color:#8fb4ff}
+  .codecard .str{color:#5fd68a}
+  .points{display:flex;flex-direction:column;gap:16px}
+  .point{display:flex;gap:16px;align-items:flex-start}
+  .point .chip{
+    font-family:"Fragment Mono",monospace;font-size:13px;font-weight:700;
+    border-radius:8px;padding:8px 12px;min-width:76px;text-align:center;
+  }
+  .chip.local{background:#e3ecfd;color:#3157b8}
+  .chip.export{background:#e7f6ec;color:#267d46}
+  .chip.next{background:var(--surface);color:var(--muted);border:1px dashed var(--faint)}
+  .point h3{font-size:16px;margin-bottom:4px}
+  .point p{color:var(--muted);line-height:1.6}
+
+  .cta-band{
+    background:linear-gradient(178deg, var(--navy-2), var(--navy-1));
+    border-radius:16px;color:#fff;text-align:center;padding:56px 32px;
+  }
+  .cta-band h2{font-size:34px}
+  .cta-band p{color:var(--hero-sub);margin:14px auto 28px;max-width:520px;font-size:16px;line-height:1.6}
+  .cta-band .mono{color:#dbe6fa;font-size:13px}
+
+  footer{border-top:1px solid var(--line);padding:36px 0 44px;color:var(--muted)}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  .foot .brand .name{color:var(--ink);font-size:18px}
+  .foot .brand .mark{background:var(--navy-1);color:#fff}
+  .foot-links{display:flex;gap:24px}
+  .foot-links a{color:var(--muted)}
+  .foot-links a:hover{color:var(--ink)}
+
+  /* motion */
+  @keyframes hero-enter{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes preview-enter{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:translateY(0)}}
+  .enter{opacity:0;animation:hero-enter .7s ease-out forwards}
+  .enter.d1{animation-delay:.05s}.enter.d2{animation-delay:.15s}.enter.d3{animation-delay:.28s}
+  .enter.d4{animation-delay:.42s}
+  .preview{opacity:0;animation:preview-enter .8s ease-out .5s forwards}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease-out, transform .6s ease-out}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){
+    .enter,.preview{animation:none;opacity:1}
+    .reveal{transition:none;opacity:1;transform:none}
+    html{scroll-behavior:auto}
+  }
+
+  @media (max-width:900px){
+    .hero h1{font-size:44px}
+    .stats,.steps{grid-template-columns:repeat(2,1fr)}
+    .features{grid-template-columns:1fr 1fr}
+    .split{grid-template-columns:1fr}
+    .canvas{height:380px}
+    .bigtext{font-size:34px;left:250px}
+    .note-b{display:none}
+  }
+  @media (max-width:640px){
+    .hero h1{font-size:36px}
+    .sec-title{font-size:30px}
+    .features,.stats,.steps{grid-template-columns:1fr}
+    .nav-links .hide-sm{display:none}
+    section{padding:64px 0}
+    .first-light{padding-top:160px}
+    .canvas{height:340px}
+    .note-a{left:52px;width:210px}
+    .note-c{display:none}
+    .bigtext{font-size:27px;left:56px;top:196px}
+    .imgcard{display:none}
+    .mock{margin-bottom:-90px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="#">
+        <span class="mark">z</span>
+        <span class="name">zlab</span>
+        <span class="badge">OSS</span>
+      </a>
+      <div class="nav-links">
+        <a class="btn btn-ghost hide-sm" href="#how">How it works</a>
+        <a class="btn btn-ghost hide-sm" href="#features">Features</a>
+        <a class="btn btn-white" href="https://github.com/Klectr/zlab">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="hero-inner">
+      <div class="eyebrow enter d1">✦ Open source · Local-first · Web app</div>
+      <h1 class="enter d2">Think on an<span class="line2">infinite canvas.</span></h1>
+      <p class="sub enter d3">Zlab is a free-form board for sticky notes, text, and images. Spread a project out, drag the pieces around until they make sense, and zoom out to see the whole thing at once. No account. No server. It all lives in your browser.</p>
+      <div class="hero-ctas enter d4">
+        <a class="btn btn-white btn-pill" href="#get">Get Zlab</a>
+        <a class="btn btn-ghost btn-pill" href="https://github.com/Klectr/zlab">View on GitHub</a>
+      </div>
+      <p class="hero-note enter d4">Runs in the browser · installs as a PWA · <span class="mono">your boards never leave your device</span></p>
+    </div>
+
+    <div class="mock preview" role="img" aria-label="The Zlab canvas with sticky notes, a text item, an image card, and the minimap">
+      <div class="mock-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="mock-title">zlab — <b>road trip board</b></span>
+      </div>
+      <div class="canvas">
+        <div class="toolbar">
+          <span class="on">+</span><span>T</span><span>▦</span><span>⤢</span>
+        </div>
+        <div class="note note-a">
+          <span class="save"></span>
+          <h4>Route ideas</h4>
+          <ul>
+            <li><span class="box">▣</span> Nashville → Memphis</li>
+            <li><span class="box">▣</span> Memphis → New Orleans</li>
+            <li><span class="box">▢</span> New Orleans → Austin</li>
+          </ul>
+        </div>
+        <div class="bigtext">the big trip ✦</div>
+        <div class="note note-b">
+          <h4>Pack list</h4>
+          <p>camera, chargers, the good<br>notebook, snacks for day one</p>
+        </div>
+        <div class="imgcard">
+          <span class="cap">route 66?</span>
+          <svg viewBox="0 0 172 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60 L44 22 L78 44 L112 14 L172 48 L172 60 Z" fill="rgba(6,15,34,.55)"/></svg>
+        </div>
+        <div class="note note-c">
+          <h4>Budget</h4>
+          <p>gas ~$300 · stays ~$900<br>food: cook half, splurge half</p>
+        </div>
+        <div class="minimap">
+          <i style="left:14px;top:10px;width:16px;height:12px"></i>
+          <i style="right:16px;top:16px;width:14px;height:10px"></i>
+          <i style="left:26px;bottom:12px;width:13px;height:9px"></i>
+          <i style="right:24px;bottom:10px;width:11px;height:8px"></i>
+          <span class="view"></span>
+        </div>
+        <div class="mock-hint">drag anything · right-click for more</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="first-light" style="padding-bottom:0">
+  <div class="wrap">
+    <div class="stats reveal">
+      <div class="stat"><div class="label">Card types</div><div class="value">3</div><div class="hint">notes, text, and images</div></div>
+      <div class="stat"><div class="label">Accounts</div><div class="value">0</div><div class="hint">no sign-up, no login, ever</div></div>
+      <div class="stat"><div class="label">Data stored locally</div><div class="value">100%</div><div class="hint">boards live in your browser</div></div>
+      <div class="stat"><div class="label">Price</div><div class="value">$0</div><div class="hint">free and open source</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker reveal">How it works</div>
+    <h2 class="sec-title reveal">Open it, drop a note, start thinking</h2>
+    <p class="sec-sub reveal">There's nothing to set up. Zlab is one page that behaves like a whiteboard with a memory — everything you place is saved as you go.</p>
+    <div class="steps">
+      <div class="card step reveal"><div class="num">01</div><h3>Open Zlab</h3><p>It runs entirely in your browser. Install it as a PWA and it opens like a native app — and keeps working offline.</p></div>
+      <div class="card step reveal"><div class="num">02</div><h3>Drop cards</h3><p>Sticky notes with a real markdown editor, big text for the ideas that need to be loud, and image cards for the visual stuff.</p></div>
+      <div class="card step reveal"><div class="num">03</div><h3>Arrange freely</h3><p>Drag cards anywhere, resize them from the corner, right-click for context actions. The focused note answers to the keyboard, too: <span class="mono">ctrl + del</span> deletes it, <span class="mono">ctrl + e</span> exports it.</p></div>
+      <div class="card step reveal"><div class="num">04</div><h3>Zoom out</h3><p>The board is bigger than your screen. The minimap in the corner shows the whole spread and where you're standing in it.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:24px">
+  <div class="wrap">
+    <div class="kicker reveal">Features</div>
+    <h2 class="sec-title reveal">A whiteboard that keeps what you put on it</h2>
+    <p class="sec-sub reveal">Most canvas tools want an account and a subscription before they'll remember your work. Zlab just remembers — locally, instantly, and for free.</p>
+    <div class="features">
+      <div class="card feature reveal"><span class="tag">Editor</span><h3>Markdown sticky notes</h3><p>Every note is a real markdown document with syntax highlighting, edited in place. A dot tells you when it's saved — which is always, a split-second after you stop typing.</p></div>
+      <div class="card feature reveal"><span class="tag">Canvas</span><h3>Room to spread out</h3><p>A 3000 × 3000 canvas you pan by scrolling. Cards drag and resize smoothly and track your cursor exactly — no snapping you didn't ask for, no grid you can't escape.</p></div>
+      <div class="card feature reveal"><span class="tag">Media</span><h3>Text &amp; image cards</h3><p>Big hand-set text for titles and mantras, images for references and mood. Image cards keep their aspect ratio when you resize them, like they should.</p></div>
+      <div class="card feature reveal"><span class="tag">Navigate</span><h3>Minimap</h3><p>A live miniature of the entire board sits in the corner, with a viewport indicator that follows you as you scroll. Getting lost is opt-in.</p></div>
+      <div class="card feature reveal"><span class="tag">Offline</span><h3>Installs as a PWA</h3><p>Add Zlab to your home screen or dock and it launches like an app, full-screen, and works offline. Your boards are stored on the device, so a dead connection changes nothing.</p></div>
+      <div class="card feature reveal"><span class="tag">Yours</span><h3>Import &amp; export</h3><p>Export your notes and images to a JSON file and import them anywhere else — another browser, another machine. No lock-in, because there's no server to be locked into.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:24px">
+  <div class="wrap">
+    <div class="kicker reveal">Local-first</div>
+    <h2 class="sec-title reveal">Your data stays yours — there's nowhere else for it to go</h2>
+    <p class="sec-sub reveal">Zlab has no backend. Boards are saved to your browser's local storage the moment you make them, and the only copy that exists is the one on your machine.</p>
+    <div class="split">
+      <div class="points reveal">
+        <div class="point"><span class="chip local">local</span><div><h3>Stored on your device</h3><p>Notes, text, and images persist in local storage — closing the tab doesn't lose a thing, and no analytics or tracking ever phones home.</p></div></div>
+        <div class="point"><span class="chip export">export</span><div><h3>Portable by design</h3><p>One click exports your notes and images as JSON. Move the file, back it up, or hand it to someone else — it's a file, not a hostage.</p></div></div>
+        <div class="point"><span class="chip next">soon</span><div><h3>Sync, if you want it</h3><p>Local-first is the foundation, not the ceiling. Anything networked that ever gets added will be optional and self-hostable — that's the house rule for every Klectr app.</p></div></div>
+      </div>
+      <div class="codecard reveal"><span class="dim">// your board, as a file — Zlab_export.json</span>
+{
+  <span class="hl">"9f3…"</span>: {
+    <span class="hl">"type"</span>: <span class="str">"notes"</span>,
+    <span class="hl">"title"</span>: <span class="str">"Route ideas"</span>,
+    <span class="hl">"contents"</span>: <span class="str">"# Route ideas\n- [x] Nashville…"</span>,
+    <span class="hl">"position"</span>: { <span class="hl">"x"</span>: 64, <span class="hl">"y"</span>: 36 },
+    <span class="hl">"dimensions"</span>: { <span class="hl">"w"</span>: 248, <span class="hl">"h"</span>: 132 }
+  },
+  <span class="hl">"e04…"</span>: { <span class="hl">"type"</span>: <span class="str">"images"</span>, <span class="dim">…</span> }
+}</div>
+    </div>
+  </div>
+</section>
+
+<section id="get" style="padding-top:24px">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <h2>Give your ideas a bigger room</h2>
+      <p>Clone the repo, run it locally, and pin it to your browser. Your first board is about ten seconds away.</p>
+      <div class="codecard" style="text-align:left;max-width:640px;margin:0 auto 28px;background:rgba(0,0,0,.28);box-shadow:none">git clone https://github.com/Klectr/zlab.git
+cd zlab &amp;&amp; bun install &amp;&amp; bun run dev
+<span class="dim"># then open it in your browser — that's the whole setup</span></div>
+      <a class="btn btn-white btn-pill" href="https://github.com/Klectr/zlab">Get Zlab on GitHub</a>
+      <p class="mono" style="margin-top:20px">Web · PWA · Open source</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="#">
+      <span class="mark">z</span>
+      <span class="name">zlab</span>
+    </a>
+    <div class="foot-links">
+      <a href="https://github.com/Klectr/zlab">GitHub</a>
+      <a href="https://github.com/Klectr/zlab#readme">Readme</a>
+      <a href="https://zlorb.klectr.dev">Zlorb</a>
+    </div>
+    <div>© 2026 Triston Armstrong · A Klectr project</div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
